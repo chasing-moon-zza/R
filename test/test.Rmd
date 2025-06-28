@@ -1,0 +1,92 @@
+---
+title: "test"
+author: "zza"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lpSolve)
+library(ggplot2)
+```
+
+```{r}
+# 目标函数系数（假设汽车和卡车的利润分别为 100 和 150，需根据实际情况调整）
+objective <- c(60, 150)  # 分别对应汽车和卡车的利润
+
+# 约束条件系数矩阵
+constraints <- matrix(c(40, 60,   # 劳动力约束
+                        1, 3),    # 钢材约束
+                      nrow = 2, byrow = TRUE)
+
+# 约束条件方向（均为小于等于）
+constraint_direction <- c("<=", "<=")
+
+# 约束条件右侧值（可用资源量）
+constraint_rhs <- c(1600, 70)
+
+# 变量下限（非负约束）
+lower_bounds <- c(0, 0)
+
+# 求解线性规划问题（最大化利润）
+solution <- lp(direction = "max",
+               objective.in = objective,
+               const.mat = constraints,
+               const.dir = constraint_direction,
+               const.rhs = constraint_rhs)
+
+# 输出结果
+cat("最优解状态:", solution$status, "\n")  # 0 表示成功找到最优解
+cat("最大利润:", solution$objval, "\n")
+cat("汽车产量:", solution$solution[1], "\n")
+cat("卡车产量:", solution$solution[2], "\n")
+```
+```{r}
+# 创建数据框用于绘图
+x <- seq(0, 40, by = 0.1)  # x 轴范围（汽车产量）
+
+# 计算约束条件边界
+labor_boundary <- (1600 - 40 * x) / 60  # 劳动力约束边界
+steel_boundary <- (70 - x) / 3          # 钢材约束边界
+
+# 创建约束条件数据框
+constraints_df <- data.frame(
+  x = x,
+  labor = labor_boundary,
+  steel = steel_boundary
+)
+
+# 创建可行域数据框（x 和 y 均满足所有约束条件的区域）
+feasible_region <- data.frame(
+  x = c(0, 0, 10, 40, 0),
+  y = c(0, 70/3, 20, 0, 0)
+)
+
+# 绘制图形
+ggplot() +
+  # 绘制可行域
+  geom_polygon(data = feasible_region, aes(x = x, y = y), fill = "lightblue", alpha = 0.3) +
+  # 绘制约束条件边界
+  geom_line(data = constraints_df, aes(x = x, y = labor), color = "red", linetype = "solid") +
+  geom_line(data = constraints_df, aes(x = x, y = steel), color = "blue", linetype = "solid") +
+  # 绘制最优解点
+  geom_point(aes(x = solution$solution[1], y = solution$solution[2]), 
+             color = "green", size = 4, shape = 16) +
+  # 添加标签
+  annotate("text", x = solution$solution[1] + 1, y = solution$solution[2] + 1, 
+           label = paste("最优解:\n汽车 =", round(solution$solution[1], 1), 
+                        "\n卡车 =", round(solution$solution[2], 1)), 
+           hjust = 0) +
+  annotate("text", x = 20, y = 30, label = "劳动力约束", color = "red") +
+  annotate("text", x = 35, y = 10, label = "钢材约束", color = "blue") +
+  # 设置坐标轴和标题
+  labs(x = "汽车产量", y = "卡车产量", 
+       title = "汽车和卡车生产的线性规划可行域",
+       subtitle = "约束条件和最优解") +
+  # 设置坐标轴范围
+  xlim(0, 45) +
+  ylim(0, 35) +
+  # 添加网格线和主题
+  theme_minimal()
+```
