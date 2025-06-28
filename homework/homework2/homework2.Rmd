@@ -1,0 +1,414 @@
+---
+title: "homework2"
+author: "zza"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: xelatex  # 指定 xelatex 引擎
+    keep_tex: true         # 保留中间 .tex 文件用于调试
+header-includes:
+  - \usepackage{ctex}      # 加载 ctex 包支持中文
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1 Lodinng and cleaning
+
+### a
+
+```{r }
+ca_pa <- read.csv("calif_penn_2011.csv", stringsAsFactors = FALSE)
+```
+
+### b
+
+```{r,echo=FALSE}
+cat("行数:",nrow(ca_pa),"\n")
+cat("列数：",ncol(ca_pa),"\n")
+```
+
+### c
+
+```{r}
+temp<-colSums(apply(ca_pa,c(1,2),is.na))
+```
+
+对ca_pa里的所有元素进行is.na判断，并对apply返回的逻辑值矩阵进行按列求和，得出每一列缺失值的数目
+
+### d
+
+```{r}
+  ca_pa_clean<-na.omit(ca_pa) ##清除后的dataframe
+```
+
+### e
+
+```{r,echo=FALSE}
+rows_eliminated <- nrow(ca_pa) - nrow(ca_pa_clean)
+cat("清除的行数：", rows_eliminated, "\n")
+```
+
+### f
+
+```{r,echo=FALSE}
+temp<-sum(temp)
+cat("c中各列na数量的总和：",temp,"\n")
+```
+其中c中的结果和大于清除的总行数，这正说明了它们的一致性，因为每行可能含有多个na值
+
+## 2 This very new House
+
+### a. 绘制房价中位数与 Built_2005_or_later 的关系图
+
+```{r}
+
+# 绘制散点图，房价中位数列是 Median_house_value，Built_2005_or_later 是对应列
+plot(
+  x = ca_pa_clean$Built_2005_or_later, 
+  y = ca_pa_clean$Median_house_value,
+  main = "Median House Prices vs Built_2005_or_later",
+  xlab = "Percentage of Houses Built 2005 or Later",
+  ylab = "Median House Price",
+  pch = 16, 
+  col = "steelblue"  
+)
+
+abline(lm(Median_house_value ~ Built_2005_or_later, data = ca_pa_clean), 
+       col = "red", 
+       lwd = 2)  
+```
+
+### b
+
+```{r}
+# 筛选加利福尼亚州（STATEFP == 6）和宾夕法尼亚州（STATEFP == 42）的数据
+ca_data <- ca_pa_clean[ca_pa_clean$STATEFP == 6, ]
+pa_data <- ca_pa_clean[ca_pa_clean$STATEFP == 42, ]
+
+# 绘制分组散点图，使用 par(mfrow = c(1, 2)) 将图形排列在一行两列
+par(mfrow = c(1, 2))  
+
+# 加利福尼亚州的散点图
+plot(
+  x = ca_data$Built_2005_or_later, 
+  y = ca_data$Median_house_value,
+  main = "California:",
+  xlab = "Percentage of Houses Built 2005 or Later",
+  ylab = "Median House Price",
+  pch = 16,
+  col = "forestgreen"
+)
+abline(lm(Median_house_value ~ Built_2005_or_later, data = ca_data), 
+       col = "red", 
+       lwd = 2)
+
+# 宾夕法尼亚州的散点图
+plot(
+  x = pa_data$Built_2005_or_later, 
+  y = pa_data$Median_house_value,
+  main = "Pennsylvania: ",
+  xlab = "Percentage of Houses Built 2005 or Later",
+  ylab = "Median House Price",
+  pch = 16,
+  col = "orange"
+)
+abline(lm(Median_house_value ~ Built_2005_or_later, data = pa_data), 
+       col = "red", 
+       lwd = 2)
+
+par(mfrow = c(1, 1))  
+```
+
+## 3   Nobody Home
+
+### a
+
+```{r,echo=FALSE}
+ca_pa_clean$vacancy_rate <- ca_pa_clean$Vacant_units / ca_pa_clean$Total_units
+
+vacancy_min <- min(ca_pa_clean$vacancy_rate, na.rm = TRUE)
+vacancy_max <- max(ca_pa_clean$vacancy_rate, na.rm = TRUE)
+vacancy_mean <- mean(ca_pa_clean$vacancy_rate, na.rm = TRUE)
+vacancy_median <- median(ca_pa_clean$vacancy_rate, na.rm = TRUE)
+
+cat("空置率最小值: ", vacancy_min, "\n")
+cat("空置率最大值: ", vacancy_max, "\n")
+cat("空置率均值: ", vacancy_mean, "\n")
+cat("空置率中位数: ", vacancy_median, "\n")
+```
+
+### b
+
+```{r}
+plot(
+  x = ca_pa_clean$vacancy_rate, 
+  y = ca_pa_clean$Median_house_value,
+  main = "Vacancy Rate vs Median House Value",
+  xlab = "Vacancy Rate",
+  ylab = "Median House Value",
+  pch = 16,  
+  col = "cornflowerblue"  
+)
+
+abline(lm(Median_house_value ~ vacancy_rate, data = ca_pa_clean), 
+       col = "tomato", 
+       lwd = 2)  
+```
+
+### c
+
+```{r}
+
+ca_data <- ca_pa_clean[ca_pa_clean$STATEFP == 6, ]
+pa_data <- ca_pa_clean[ca_pa_clean$STATEFP == 42, ]
+
+par(mfrow = c(1, 2))  
+
+# 加利福尼亚州散点图
+plot(
+  x = ca_data$vacancy_rate, 
+  y = ca_data$Median_house_value,
+  main = "California: ",
+  xlab = "Vacancy Rate",
+  ylab = "Median House Value",
+  pch = 16,
+  col = "forestgreen"
+)
+abline(lm(Median_house_value ~ vacancy_rate, data = ca_data), 
+       col = "tomato", 
+       lwd = 2)
+
+# 宾夕法尼亚州散点图
+plot(
+  x = pa_data$vacancy_rate, 
+  y = pa_data$Median_house_value,
+  main = "Pennsylvania:",
+  xlab = "Vacancy Rate",
+  ylab = "Median House Value",
+  pch = 16,
+  col = "orange"
+)
+abline(lm(Median_house_value ~ vacancy_rate, data = pa_data), 
+       col = "tomato", 
+       lwd = 2)
+
+
+par(mfrow = c(1, 1))  
+```
+
+两个州图像存在较大差异
+
+## 4
+
+### a
+
+```{r}
+ acca <- c()
+ for (tract in 1:nrow(ca_pa_clean)) {
+ if (ca_pa_clean$STATEFP[tract] == 6) {
+ if (ca_pa_clean$COUNTYFP[tract] == 1) {
+ acca <- c(acca, tract)
+ }
+ }
+ }
+ accamhv <- c()
+ for (tract in acca) {
+ accamhv <- c(accamhv, ca_pa_clean[tract,10])
+ }
+ median(accamhv)
+```
+
+遍历ca_pa中每一行，将为加利福尼亚州Alameda 县的行索引加入到acca中（我这里ca_pa_clean是清理过的ca_pa）
+
+遍历 acca 中的行索引，提取这些行的第 10 列数据房价中位数，存储到 accanhv。然后取其中位数
+
+### b
+
+```{r}
+median(ca_pa_clean[ca_pa_clean$STATEFP == 6 & ca_pa_clean$COUNTYFP == 1, 10])
+```
+
+### c
+
+```{r,echo=FALSE}
+# 筛选县：Alameda（CA, 1）、Santa Clara（CA, 85）、Allegheny（PA, 3）
+alameda <- ca_pa_clean[ca_pa_clean$STATEFP == 6 & ca_pa_clean$COUNTYFP == 1, ]
+santa_clara <- ca_pa_clean[ca_pa_clean$STATEFP == 6 & ca_pa_clean$COUNTYFP == 85, ]
+allegheny <- ca_pa_clean[ca_pa_clean$STATEFP == 42 & ca_pa_clean$COUNTYFP == 3, ]
+
+# 计算平均新建住房比例
+mean_alameda <- mean(alameda$Built_2005_or_later, na.rm = TRUE)
+mean_santa_clara <- mean(santa_clara$Built_2005_or_later, na.rm = TRUE)
+mean_allegheny <- mean(allegheny$Built_2005_or_later, na.rm = TRUE)
+
+# 输出结果
+cat("Alameda 县平均新建住房比例：", mean_alameda, "\n")
+cat("Santa Clara 县平均新建住房比例：", mean_santa_clara, "\n")
+cat("Allegheny 县平均新建住房比例：", mean_allegheny, "\n")
+```
+
+### d
+
+```{r,echo=FALSE}
+# (i) 整个数据的相关性
+cor_all <- cor(ca_pa_clean$Median_house_value, ca_pa_clean$Built_2005_or_later)
+
+# (ii) 加利福尼亚州（STATEFP == 6）的数据相关性
+ca_data <- ca_pa_clean[ca_pa_clean$STATEFP == 6, ]
+cor_ca <- cor(ca_data$Median_house_value, ca_data$Built_2005_or_later)
+
+# (iii) 宾夕法尼亚州（STATEFP == 42）的数据相关性
+pa_data <- ca_pa_clean[ca_pa_clean$STATEFP == 42, ]
+cor_pa <- cor(pa_data$Median_house_value, pa_data$Built_2005_or_later)
+
+# (iv) Alameda 县（STATEFP == 6 且 COUNTYFP == 1）的数据相关性
+alameda_data <- ca_pa_clean[ca_pa_clean$STATEFP == 6 & ca_pa_clean$COUNTYFP == 1, ]
+cor_alameda <- cor(alameda_data$Median_house_value, alameda_data$Built_2005_or_later)
+
+# (v) Santa Clara 县（STATEFP == 6 且 COUNTYFP == 85）的数据相关性
+santa_clara_data <- ca_pa_clean[ca_pa_clean$STATEFP == 6 & ca_pa_clean$COUNTYFP == 85, ]
+cor_santa_clara <- cor(santa_clara_data$Median_house_value, santa_clara_data$Built_2005_or_later)
+
+# (vi) Allegheny 县（STATEFP == 42 且 COUNTYFP == 3）的数据相关性
+allegheny_data <- ca_pa_clean[ca_pa_clean$STATEFP == 42 & ca_pa_clean$COUNTYFP == 3, ]
+cor_allegheny <- cor(allegheny_data$Median_house_value, allegheny_data$Built_2005_or_later)
+
+cat("(i) 整个数据的相关性：", cor_all, "\n")
+cat("(ii) 加利福尼亚州的相关性：", cor_ca, "\n")
+cat("(iii) 宾夕法尼亚州的相关性：", cor_pa, "\n")
+cat("(iv) Alameda 县的相关性：", cor_alameda, "\n")
+cat("(v) Santa Clara 县的相关性：", cor_santa_clara, "\n")
+cat("(vi) Allegheny 县的相关性：", cor_allegheny, "\n")
+```
+
+### e. 绘制房价中位数与收入中位数的关系图（按县分组）
+```{r}
+# 加载 ggplot2 包（如果未加载）
+library(ggplot2)
+
+alameda <- ca_pa_clean[ca_pa_clean$STATEFP == 6 & ca_pa_clean$COUNTYFP == 1, ]
+santa_clara <- ca_pa_clean[ca_pa_clean$STATEFP == 6 & ca_pa_clean$COUNTYFP == 85, ]
+allegheny <- ca_pa_clean[ca_pa_clean$STATEFP == 42 & ca_pa_clean$COUNTYFP == 3, ]
+
+# 为每个县数据添加标识列，再合并，让数据框直接包含要引用的列
+alameda$County <- "Alameda"
+santa_clara$County <- "Santa Clara"
+allegheny$County <- "Allegheny"
+
+county_data <- rbind(alameda, santa_clara, allegheny)
+
+# 使用 ggplot2 绘制分组散点图，直接引用列名
+ggplot(county_data, aes(x = Median_household_income, y = Median_house_value, color = County)) +
+  geom_point(alpha = 0.6, size = 2) +  
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +  
+  labs(
+    title = "房价中位数与收入中位数的关系）",
+    x = "收入中位数（美元）",
+    y = "房价中位数（美元）",
+    color = "县名"
+  ) +
+  theme_minimal() +  
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"), 
+    legend.position = "bottom",  
+    axis.text = element_text(size = 10), 
+    axis.title = element_text(size = 12, face = "bold") 
+  ) +
+  scale_color_manual(values = c(
+    "Alameda" = "#3366CC",      # 蓝色，区分 Alameda 县
+    "Santa Clara" = "#DC3912",  # 红色，区分 Santa Clara 县
+    "Allegheny" = "#FF9900"    # 橙色，区分 Allegheny 县
+  ))
+```
+
+## MB.Ch1
+
+```{r}
+gender<- factor(c(rep("female",91),rep("male",92)))
+table(gender)
+#初始 gender 因子有 female（91 个）和 male（92 个），table 按默认水平统计，输出对应数量
+```
+
+```{r}
+gender <- factor(gender, levels=c("male", "female"))
+ table(gender)
+ # 重新指定因子水平，table 按新水平顺序（male 在前、female 在后）统计
+```
+
+```{r}
+ gender <- factor(gender, levels=c("Male", "female"))
+ table(gender)
+ #指定水平为 c("Male", "female")，原数据无 Male 水平，仅 female 匹配，故 Male 计数为 0，female 为 91
+```
+
+```{r}
+ table(gender, exclude=NULL)
+# 加入exclude=NULL 后，未匹配的male被归为NA显示，输出 Male（0）、female（91）、<NA>
+```
+
+## MB.Ch1.2
+
+### a
+
+```{r}
+prop_exceed <- function(x, cutoff) {
+  mean(x > cutoff)
+}
+x <- 1:100
+# 用 1到100计算超过50的比例
+result_a <- prop_exceed(x, 50)
+```
+
+### b
+
+```{r}
+prop_exceed <- function(x, cutoff) {
+  mean(x > cutoff)
+}
+
+library(Devore7)
+data("ex01.36")
+
+# 将秒换算为分钟
+escape_times <- ex01.36$C1 / 60  
+
+dotplot(escape_times, 
+        main = "Distribution of Escape Times (in minutes)", 
+        xlab = "Escape Time (minutes)")
+
+# 计算超过 7 分钟的比例
+result_b <- prop_exceed(escape_times, 7)
+result_b
+```
+
+## MB.Ch 1.18
+```{r}
+
+library(MASS)
+data(Rabbit)
+
+
+rabbit_unstacked <- unstack(Rabbit, BPchange ~ Animal)
+
+
+Rabbit$id <- with(Rabbit, paste(Dose, Treatment, sep = "_"))
+
+dose_treatment <- unique(Rabbit[c("Dose", "Treatment", "id")])
+
+
+final_result <- cbind(dose_treatment, rabbit_unstacked)
+
+
+final_result$id <- NULL
+
+
+final_result <- final_result[, c("Treatment", "Dose", "R1", "R2", "R3", "R4", "R5")]
+
+final_result <- final_result[order(final_result$Dose), ]
+
+rownames(final_result) <- NULL
+
+final_result
+```
